@@ -10,15 +10,14 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("src/main.zig"),
             .target = target,
             .optimize = optimize,
+            .link_libc = true,
         }),
     });
 
-    // Link libc for termios
-    exe.linkLibC();
+    exe.linkSystemLibrary("mysqlclient");
 
     b.installArtifact(exe);
 
-    // Run command
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
 
@@ -29,7 +28,6 @@ pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Run zql");
     run_step.dependOn(&run_cmd.step);
 
-    // Tests
     const unit_tests = b.addTest(.{
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/main.zig"),

@@ -1,6 +1,10 @@
 .zig-cache/
 zig-out/
+notes/
+*.md
 *.o
 *.a
 *.so
 *.dylib
+.direnv/
+result

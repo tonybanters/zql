@@ -1,6 +1,15 @@
 const std = @import("std");
 const Term = @import("term.zig").Term;
 
+const ascii_table: [256][]const u8 = blk: {
+    var table: [256][]const u8 = undefined;
+    for (0..256) |i| {
+        const static: *const [1]u8 = &[1]u8{@intCast(i)};
+        table[i] = static;
+    }
+    break :blk table;
+};
+
 pub const Color = enum(u8) {
     default = 0,
     black = 30,
@@ -140,15 +149,32 @@ pub const Buffer = struct {
     }
 
     pub fn print(self: *Self, x: u16, y: u16, comptime fmt: []const u8, args: anytype) void {
-        var buf: [512]u8 = undefined;
-        const text = std.fmt.bufPrint(&buf, fmt, args) catch return;
-        self.write(x, y, text);
+        self.print_styled(x, y, .default, .default, .{}, fmt, args);
     }
 
     pub fn print_styled(self: *Self, x: u16, y: u16, fg: Color, bg: Color, style: Style, comptime fmt: []const u8, args: anytype) void {
         var buf: [512]u8 = undefined;
         const text = std.fmt.bufPrint(&buf, fmt, args) catch return;
-        self.write_styled(x, y, text, fg, bg, style);
+
+        var col = x;
+        for (text) |c| {
+            if (col >= self.width) break;
+            self.set_cell_char(col, y, c, fg, bg, style);
+            col += 1;
+        }
+    }
+
+    fn set_cell_char(self: *Self, x: u16, y: u16, c: u8, fg: Color, bg: Color, style: Style) void {
+        if (x >= self.width or y >= self.height) return;
+        const idx = @as(usize, y) * @as(usize, self.width) + @as(usize, x);
+        if (idx < self.cells.len) {
+            self.cells[idx] = .{
+                .char = ascii_table[c],
+                .fg = fg,
+                .bg = bg,
+                .style = style,
+            };
+        }
     }
 
     pub fn fill_rect(self: *Self, x: u16, y: u16, w: u16, h: u16, char: []const u8, fg: Color, bg: Color) void {
