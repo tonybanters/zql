@@ -177,6 +177,10 @@ pub const Buffer = struct {
         }
     }
 
+    pub fn set_cell_char_styled(self: *Self, x: u16, y: u16, c: u8, fg: Color, bg: Color, style: Style) void {
+        self.set_cell_char(x, y, c, fg, bg, style);
+    }
+
     pub fn fill_rect(self: *Self, x: u16, y: u16, w: u16, h: u16, char: []const u8, fg: Color, bg: Color) void {
         var row: u16 = 0;
         while (row < h) : (row += 1) {
