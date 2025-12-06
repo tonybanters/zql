@@ -1,0 +1,212 @@
+#+AUTHOR: Tony
+#+STARTUP: overview
+
+* Table of Contents :toc:
+- [[#zql--a-terminal-ui-for-mysql][ZQL — A Terminal UI for MySQL]]
+- [[#features][Features]]
+- [[#installation][Installation]]
+  - [[#nixos-with-flakes][NixOS (with Flakes)]]
+  - [[#building-from-source][Building from Source]]
+- [[#usage][Usage]]
+- [[#key-bindings][Key Bindings]]
+  - [[#global][Global]]
+  - [[#tables-pane][Tables Pane]]
+  - [[#query-pane-vim-motions][Query Pane (Vim Motions)]]
+  - [[#results-pane][Results Pane]]
+  - [[#table-actions-modal-shift-k][Table Actions Modal (Shift-K)]]
+- [[#development][Development]]
+- [[#project-structure][Project Structure]]
+- [[#future-plans][Future Plans]]
+  - [[#configuration][Configuration]]
+  - [[#data-editing-datagrip-style][Data Editing (DataGrip-style)]]
+  - [[#query-features][Query Features]]
+  - [[#results-pane-1][Results Pane]]
+  - [[#connection-management][Connection Management]]
+  - [[#database-support][Database Support]]
+  - [[#quality-of-life][Quality of Life]]
+- [[#license][License]]
+
+* ZQL — A Terminal UI for MySQL
+A fast, vim-centric terminal UI for MySQL databases. Navigate tables, write queries with full vim motions, and inspect table schemas without leaving your terminal.
+
+* Features
+- *Vim-First Query Editor*
+  - Full vim motions (hjkl, w, b, e, 0, $, gg, G)
+  - Visual mode and visual line mode (v, V)
+  - Operators (d, c, y, p) with linewise support
+  - Undo/redo (u, Ctrl-r)
+  - Mode indicator in status bar
+- *Table Browser*
+  - Fuzzy search tables with =/=
+  - Jump to next/previous match (n/N)
+  - Quick select with Enter to generate SELECT query
+- *Table Actions Modal* (Shift-K)
+  - Copy CREATE TABLE to clipboard
+  - Send DDL to query editor
+  - View columns and indexes
+- *Results Viewer*
+  - Scrollable results with hjkl
+  - Column headers with types
+  - NULL value highlighting
+- *SQL Syntax Highlighting*
+  - Keywords, functions, strings, numbers, operators
+
+* Installation
+Requires Zig 0.15+ and MySQL client library.
+
+#+begin_src sh
+git clone https://github.com/tonybanters/zql
+cd zql
+nix develop  # or ensure libmysqlclient is available
+zig build -Doptimize=ReleaseFast
+#+end_src
+
+Binary will be at =zig-out/bin/zql=.
+
+* Usage
+#+begin_src sh
+zql
+#+end_src
+
+On first run, you'll see the connection picker. Add a new connection with your MySQL credentials.
+
+Connections are stored in =~/.config/zql/connections.lua=.
+
+* Key Bindings
+** Global
+| Binding   | Action                |
+|-----------+-----------------------|
+| Ctrl-W h/j/k/l | Move between panes |
+| Ctrl-W w  | Cycle panes           |
+| Tab       | Cycle panes           |
+| Ctrl-C    | Quit                  |
+| Ctrl-L    | Refresh screen        |
+
+** Tables Pane
+| Binding   | Action                      |
+|-----------+-----------------------------|
+| j/k       | Move down/up                |
+| g/G       | Go to first/last table      |
+| Ctrl-D/U  | Page down/up                |
+| /         | Search tables               |
+| n/N       | Next/previous match         |
+| Enter     | Select table (gen query)    |
+| K (Shift) | Open table actions modal    |
+
+** Query Pane (Vim Motions)
+| Binding   | Action                      |
+|-----------+-----------------------------|
+| i         | Enter insert mode           |
+| Escape    | Return to normal mode       |
+| h/j/k/l   | Move cursor                 |
+| w/b/e     | Word motions                |
+| 0/$       | Start/end of line           |
+| gg/G      | Start/end of buffer         |
+| v/V       | Visual / visual line mode   |
+| d/c/y     | Delete/change/yank          |
+| dd/yy/cc  | Line-wise operations        |
+| p/P       | Paste after/before          |
+| u         | Undo                        |
+| Ctrl-R    | Redo                        |
+| Ctrl-E    | Execute query               |
+
+** Results Pane
+| Binding   | Action                      |
+|-----------+-----------------------------|
+| h/j/k/l   | Scroll results              |
+| g/G       | Go to first/last row        |
+| 0/$       | Scroll to left/right edge   |
+
+** Table Actions Modal (Shift-K)
+| Binding   | Action                      |
+|-----------+-----------------------------|
+| j/k       | Move selection              |
+| Enter     | Execute action              |
+| q/Escape  | Close modal                 |
+
+* Development
+Use the Nix dev shell for a complete development environment:
+
+#+begin_src sh
+git clone https://github.com/tonybanters/zql
+cd zql
+nix develop
+
+# Build
+zig build
+
+# Run
+./zig-out/bin/zql
+#+end_src
+
+The dev shell includes:
+- Zig 0.15
+- MySQL client library
+- All required dependencies
+
+* Project Structure
+#+begin_src
+src/
+├── main.zig              [Entry point, arg parsing]
+├── ui.zig                [Main UI, pane rendering, vim motions]
+├── db.zig                [MySQL connection, query execution]
+├── buffer.zig            [Terminal cell buffer, styling]
+├── term.zig              [Terminal I/O, key parsing]
+├── config.zig            [Lua config loading]
+├── connections.zig       [Connection storage/management]
+├── connection_picker.zig [Connection selection UI]
+└── table_actions.zig     [Table actions modal]
+
+flake.nix                 [Nix flake for builds/dev shell]
+build.zig                 [Zig build configuration]
+#+end_src
+
+* Future Plans
+** Configuration
+- [ ] Colorscheme in config.lua (user-customizable themes)
+- [ ] Keybinding customization
+- [ ] Default connection auto-connect option
+
+** Data Editing 
+- [ ] Enter on cell to edit in-place
+- [ ] Track modified cells (highlight dirty cells)
+- [ ] INSERT new row (a or o in results pane)
+- [ ] DELETE row (dd with confirmation)
+- [ ] Submit changes button/keybind
+- [ ] Revert changes
+- [ ] NULL toggle for cell values
+
+** Query Features
+- [ ] Query history (up/down arrows)
+- [ ] Save/load queries to file
+- [ ] Multiple query tabs
+- [ ] Auto-complete (tables, columns, keywords)
+- [ ] Format/prettify SQL
+- [ ] Explain query plan
+
+** Results Pane
+- [ ] Copy cell value to clipboard
+- [ ] Copy row as INSERT statement
+- [ ] Copy row as JSON
+- [ ] Sort by column
+- [ ] Filter results
+- [ ] Column resizing
+
+** Connection Management
+- [ ] Edit existing connections
+- [ ] Test connection button
+- [ ] SSH tunnel support
+- [ ] SSL/TLS options
+
+** Database Support
+- [ ] PostgreSQL
+- [ ] SQLite
+
+** Quality of Life
+- [ ] Fuzzy finder for tables (telescope-style)
+- [ ] Schema browser (expand tables to see columns)
+- [ ] Help modal (? key)
+- [ ] Notifications/toast messages
+
+* License
+[[https://www.gnu.org/licenses/gpl-3.0.en.html][GPL v3]]

@@ -6,6 +6,7 @@ const Buffer = @import("buffer.zig").Buffer;
 const Color = @import("buffer.zig").Color;
 const Style = @import("buffer.zig").Style;
 const db = @import("db.zig");
+const TableActions = @import("table_actions.zig").TableActions;
 
 pub const Pane = enum {
     tables,
@@ -25,8 +26,8 @@ const theme = struct {
     const border_inactive = Color.bright_black;
     const title_active = Color.cyan;
     const title_inactive = Color.bright_black;
-    const selected_bg = Color.blue;
-    const selected_fg = Color.white;
+    const selected_bg = Color.bright_black;
+    const selected_fg = Color.default;
     const status_bg = Color.bright_black;
     const status_fg = Color.white;
     const hint = Color.bright_black;
@@ -108,6 +109,7 @@ pub const UI = struct {
     error_message: []const u8,
     undo_stack: std.ArrayListUnmanaged(UndoState),
     redo_stack: std.ArrayListUnmanaged(UndoState),
+    table_actions: TableActions,
 
     const Self = @This();
 
@@ -147,6 +149,7 @@ pub const UI = struct {
             .error_message = "",
             .undo_stack = .{},
             .redo_stack = .{},
+            .table_actions = TableActions.init(allocator, conn),
         };
 
         self.tables = conn.get_tables() catch &[_][]const u8{};
@@ -174,6 +177,7 @@ pub const UI = struct {
         if (self.result_set) |*rs| {
             rs.deinit();
         }
+        self.table_actions.deinit();
     }
 
     pub fn run(self: *Self) !void {
@@ -187,6 +191,11 @@ pub const UI = struct {
     }
 
     fn handle_input(self: *Self, key: Key) !void {
+        if (self.table_actions.visible) {
+            try self.handle_table_actions_input(key);
+            return;
+        }
+
         if (self.window_mode) {
             self.window_mode = false;
             switch (key) {
@@ -230,6 +239,27 @@ pub const UI = struct {
         }
     }
 
+    fn handle_table_actions_input(self: *Self, key: Key) !void {
+        switch (key) {
+            .escape => self.table_actions.close(),
+            .char => |c| switch (c) {
+                'j' => self.table_actions.move_down(),
+                'k' => self.table_actions.move_up(),
+                'q' => self.table_actions.close(),
+                else => {},
+            },
+            .enter => {
+                if (try self.table_actions.execute_selected()) |ddl| {
+                    self.query_text.clearRetainingCapacity();
+                    try self.query_text.appendSlice(self.allocator, ddl);
+                    self.query_cursor = 0;
+                    self.active_pane = .query;
+                }
+            },
+            else => {},
+        }
+    }
+
     fn handle_tables_input(self: *Self, key: Key) !void {
         if (self.tables_search_mode) {
             try self.handle_tables_search_input(key);
@@ -254,6 +284,11 @@ pub const UI = struct {
                     'k' => self.tables_move_up(count),
                     'g' => self.tables_selected = 0,
                     'G' => self.tables_selected = max_idx,
+                    'K' => {
+                        if (self.tables.len > 0) {
+                            self.table_actions.open(self.tables[self.tables_selected]);
+                        }
+                    },
                     '/' => {
                         self.tables_search_mode = true;
                         self.tables_search_text.clearRetainingCapacity();
@@ -1204,6 +1239,10 @@ pub const UI = struct {
         self.draw_query_pane(tables_width, 0, w -| tables_width, query_height);
         self.draw_results_pane(tables_width, query_height, w -| tables_width, h -| query_height -| status_height);
         self.draw_status_line(0, h -| 1, w);
+
+        if (self.table_actions.visible) {
+            self.table_actions.draw(&self.buffer, w, h);
+        }
 
         try self.buffer.flush(self.term);
     }
