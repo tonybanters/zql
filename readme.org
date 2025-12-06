@@ -1,6 +1,14 @@
 #+AUTHOR: Tony
 #+STARTUP: overview
 
+* ZQL — A Terminal UI for MySQL
+A fast, vim-centric terminal UI for MySQL databases. Navigate tables, write queries with full vim motions, and inspect table schemas without leaving your terminal.
+
+[[./assets/query-results.png]]
+
+[[./assets/table-menu.png]]
+
+[[./assets/ddl-view.png]]
 * Table of Contents :toc:
 - [[#zql--a-terminal-ui-for-mysql][ZQL — A Terminal UI for MySQL]]
 - [[#features][Features]]
@@ -26,8 +34,6 @@
   - [[#quality-of-life][Quality of Life]]
 - [[#license][License]]
 
-* ZQL — A Terminal UI for MySQL
-A fast, vim-centric terminal UI for MySQL databases. Navigate tables, write queries with full vim motions, and inspect table schemas without leaving your terminal.
 
 * Features
 - *Vim-First Query Editor*
